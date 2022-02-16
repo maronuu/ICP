@@ -12,6 +12,14 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 # project name
 project(00_demo2d CXX)
 
+# Google Test
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
+)
+FetchContent_MakeAvailable(googletest)
+
 # compile flags
 set(CMAKE_CXX_FLAGS "-std=c++17 -Wall")
 

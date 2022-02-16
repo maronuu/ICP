@@ -1,5 +1,11 @@
-cmake_minimum_required(VERSION 3.1.2)
+cmake_minimum_required(VERSION 3.12)
 
-add_executable(test_icp test_icp.cpp)
+enable_testing()
 
-target_link_libraries(test_icp Eigen3::Eigen)
+add_executable(icp_test icp_test.cpp)
+
+target_link_libraries(icp_test Eigen3::Eigen)
+target_link_libraries(icp_test gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(icp_test)
