@@ -5,6 +5,7 @@
 #include <vector>
 #include <math.h>
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/SVD>
 
 // generate sample point cloud (random sampling from circle)
 void generate_point_cloud(const int num_sample, const double radius, Eigen::MatrixXd &data)
@@ -35,34 +36,48 @@ void random_shift(const Eigen::MatrixXd &src, Eigen::MatrixXd &dst)
     const int num_sample = src.rows();
     for (int i = 0; i < num_sample; ++i)
     {
-        dst(i, 0) = src(i, 0) + dx;
-        dst(i, 1) = src(i, 1) + dy;
         const double tmp_x = dst(i, 0);
         const double tmp_y = dst(i, 1);
-        dst(i, 0) = tmp_x * cos(theta) - tmp_y * sin(theta);
-        dst(i, 1) = tmp_x * sin(theta) + tmp_y * cos(theta);
+        // TODO: use eigen features
+        // rotation
+        dst(i, 0) = src(i, 0) * cos(theta) - src(i, 1) * sin(theta);
+        dst(i, 1) = src(i, 0) * sin(theta) + src(i, 1) * cos(theta);
+        // transition
+        dst(i, 0) += dx;
+        dst(i, 1) += dy;
     }
 }
 
-void icp(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, std::vector<int> &correspondence)
-{
-    const int num_sample = data1.rows();
+void icp(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2) {
     assert(data1.rows() == data2.rows());
+    const int num_point = data1.rows();
+    Eigen::MatrixXd data1_var = data1;  // deep copy
 
-    // std::vector<int> correspondence(num_sample, -1);
-    double dx, dy, sq_dist;
-    std::vector<bool> is_matched(num_sample, false);
-    for (int i = 0; i < num_sample; ++i)
+    constexpr double inf = 1e20;
+    constexpr double eps = 1e-5;
+    
+    // correspondence[i] = j means (data1[i], data2[j]) is corresponding
+    std::vector<int> correspondence(num_point, -1);
+    double error_before = inf;
+    double error_after = inf;
+
+    while (std::abs(error_before - error_after) < eps) {
+        icp_once(data1_var, data2, correspondence);
+    }
+}
+
+void icp_once(Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const int num_point, std::vector<int> &correspondence)
+{
+    constexpr double inf = 1e20;
+    // nearest neighbor
+    for (int i = 0; i < num_point; ++i)
     {
-        double min_sq_dist = 1e9;
+        double min_sq_dist = inf;
         int min_j = -1;
-        for (int j = 0; j < num_sample; ++j)
+        for (int j = 0; j < num_point; ++j)
         {
-            if (is_matched[j])
-                continue;
-            dx = data1(i, 0) - data2(j, 0);
-            dy = data1(i, 1) - data2(j, 1);
-            sq_dist = dx * dx + dy * dy;
+            const auto dr = data1.row(i) - data2.row(j);
+            const double sq_dist = dr.squaredNorm();
             if (sq_dist < min_sq_dist)
             {
                 min_sq_dist = sq_dist;
@@ -70,6 +85,33 @@ void icp(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, std::vector
             }
         }
         correspondence[i] = min_j;
-        is_matched[min_j] = true;
     }
+
+    // translation
+    const auto translation = compute_translation(data1, data2, correspondence);
+    data1 += translation;
+
+    // rotation
+    const auto rotation = compute_rotation(data1, data2, correspondence);
+}
+
+Eigen::VectorXd compute_translation(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const std::vector<int> &correspondence) {
+    const auto c1 = compute_center_of_mass(data1);
+    auto corresp_data = Eigen::MatrixXd::Zero(data1.size());
+    for (int i = 0; i < data1.rows(); ++i) {
+        corresp_data.row(i) = data2.row(correspondence[i]);
+    }
+    const auto c2 = compute_center_of_mass(corresp_data);
+    return c2-c1;
+}
+
+Eigen::MatrixXd compute_rotation(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const std::vector<int> &correspondence) {
+    // TODO: SVD
+    // |R -  q p.T|
+    Eigen::MatrixXd M = data2 * data1.transpose();
+}
+
+Eigen::VectorXd compute_center_of_mass(const Eigen::MatrixXd &data)
+{
+    return data.colwise().mean();
 }
