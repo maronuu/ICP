@@ -36,8 +36,6 @@ void random_shift(const Eigen::MatrixXd &src, Eigen::MatrixXd &dst)
     const int num_sample = src.rows();
     for (int i = 0; i < num_sample; ++i)
     {
-        const double tmp_x = dst(i, 0);
-        const double tmp_y = dst(i, 1);
         // TODO: use eigen features
         // rotation
         dst(i, 0) = src(i, 0) * cos(theta) - src(i, 1) * sin(theta);
@@ -64,11 +62,14 @@ void icp(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2)
 
     while (std::abs(error_before - error_after) < eps)
     {
-        icp_once(data1_var, data2, correspondence);
+        error_before = error_after;
+        error_after = icp_once(data1_var, data2, num_point, correspondence);
     }
+
+    std::cout << "ICP Done" << std::endl;
 }
 
-void icp_once(Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const int num_point, std::vector<int> &correspondence)
+double icp_once(Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const int num_point, std::vector<int> &correspondence)
 {
     constexpr double inf = 1e20;
     // nearest neighbor
@@ -98,19 +99,24 @@ void icp_once(Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const int nu
     // rotation
     const auto rotation = compute_rotation(data1, data2, correspondence);
     for (int i = 0; i < num_point; ++i) {
-        data1.row(i) = rotation * data1.row(i);
+        data1.row(i) = rotation * data1.row(i).transpose();
     }
 
-
+    // calcurate error
+    const double error = compute_error(data1, data2);
+    return error;
 }
 
 Eigen::VectorXd compute_translation(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const std::vector<int> &correspondence)
 {
     const auto c1 = compute_center_of_mass(data1);
-    auto corresp_data = Eigen::MatrixXd::Zero(data1.size());
+    Eigen::MatrixXd corresp_data = Eigen::MatrixXd::Zero(data1.rows(), data1.cols());
     for (int i = 0; i < data1.rows(); ++i)
     {
-        corresp_data.row(i) = data2.row(correspondence[i]);
+        for (int j = 0; j < data1.cols(); ++j) {
+            corresp_data(i, j) = data2(correspondence[i], j);
+        }
+        // corresp_data.row(i) = data2.row(correspondence[i]);
     }
     const auto c2 = compute_center_of_mass(corresp_data);
     return c2 - c1;
@@ -122,9 +128,7 @@ Eigen::MatrixXd compute_rotation(const Eigen::MatrixXd &data1, const Eigen::Matr
     // |R -  q p.T|
     // M: 2x2 matrix
     Eigen::MatrixXd M = data2.transpose() * data1;
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(M);
-    svd.computeU();
-    svd.computeV();
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
     Eigen::MatrixXd R = svd.matrixU() * svd.matrixV().transpose();
     return R;
 }
@@ -134,3 +138,11 @@ Eigen::VectorXd compute_center_of_mass(const Eigen::MatrixXd &data)
     return data.colwise().mean();
 }
 
+double compute_error(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2) {
+    assert(data1.rows() == data2.rows());
+    double ret = 0.0;
+    for (int i = 0; i < data1.rows(); ++i) {
+        ret += (data1.row(i) - data2.row(i)).squaredNorm();
+    }
+    return ret;
+}
