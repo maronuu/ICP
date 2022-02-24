@@ -4,8 +4,11 @@
 #include <random>
 #include <vector>
 #include <math.h>
+
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/SVD>
+#include "../matplotlib-cpp/matplotlibcpp.h"
+namespace plt = matplotlibcpp;
 
 // generate sample point cloud (random sampling from circle)
 void generate_point_cloud(const int num_sample, const double radius, Eigen::MatrixXd &data)
@@ -28,11 +31,12 @@ void random_shift(const Eigen::MatrixXd &src, Eigen::MatrixXd &dst)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<double> trans_dist(-1000, 1000);
+    std::uniform_real_distribution<double> trans_dist(-100, 100);
     std::uniform_real_distribution<double> rot_dist(0, 2 * M_PI);
     const double dx = trans_dist(gen);
     const double dy = trans_dist(gen);
     const double theta = rot_dist(gen);
+    printf("dx = %f, dy = %f, dtheta = %f\n", dx, dy, theta);
     const int num_sample = src.rows();
     for (int i = 0; i < num_sample; ++i)
     {
@@ -46,27 +50,35 @@ void random_shift(const Eigen::MatrixXd &src, Eigen::MatrixXd &dst)
     }
 }
 
-void icp(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2)
+int icp(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2)
 {
     assert(data1.rows() == data2.rows());
     const int num_point = data1.rows();
     Eigen::MatrixXd data1_var = data1; // deep copy
 
     constexpr double inf = 1e20;
-    constexpr double eps = 1e-5;
+    constexpr double eps = 1e-3;
 
     // correspondence[i] = j means (data1[i], data2[j]) is corresponding
     std::vector<int> correspondence(num_point, -1);
     double error_before = inf;
     double error_after = inf;
 
-    while (std::abs(error_before - error_after) < eps)
+    int cnt = 0;
+    while (cnt == 0 || std::abs(error_before - error_after) > eps)
     {
         error_before = error_after;
         error_after = icp_once(data1_var, data2, num_point, correspondence);
+        if (cnt % 100 == 0)
+        {
+            printf("%d: error = %f\n", cnt, error_after);
+            plot_data(data1, data2, cnt);
+        }
+        cnt++;
     }
 
     std::cout << "ICP Done" << std::endl;
+    return cnt;
 }
 
 double icp_once(Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const int num_point, std::vector<int> &correspondence)
@@ -92,14 +104,16 @@ double icp_once(Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const int 
 
     // translation
     const auto translation = compute_translation(data1, data2, correspondence);
-    for (int i = 0; i < num_point; ++i) {
+    for (int i = 0; i < num_point; ++i)
+    {
         data1.row(i) += translation;
     }
 
     // rotation
     const auto rotation = compute_rotation(data1, data2, correspondence);
-    for (int i = 0; i < num_point; ++i) {
-        data1.row(i) = rotation * data1.row(i).transpose();
+    for (int i = 0; i < num_point; ++i)
+    {
+        data1.row(i) *= rotation.transpose();
     }
 
     // calcurate error
@@ -113,7 +127,8 @@ Eigen::VectorXd compute_translation(const Eigen::MatrixXd &data1, const Eigen::M
     Eigen::MatrixXd corresp_data = Eigen::MatrixXd::Zero(data1.rows(), data1.cols());
     for (int i = 0; i < data1.rows(); ++i)
     {
-        for (int j = 0; j < data1.cols(); ++j) {
+        for (int j = 0; j < data1.cols(); ++j)
+        {
             corresp_data(i, j) = data2(correspondence[i], j);
         }
         // corresp_data.row(i) = data2.row(correspondence[i]);
@@ -138,11 +153,33 @@ Eigen::VectorXd compute_center_of_mass(const Eigen::MatrixXd &data)
     return data.colwise().mean();
 }
 
-double compute_error(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2) {
+double compute_error(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2)
+{
     assert(data1.rows() == data2.rows());
     double ret = 0.0;
-    for (int i = 0; i < data1.rows(); ++i) {
+    for (int i = 0; i < data1.rows(); ++i)
+    {
         ret += (data1.row(i) - data2.row(i)).squaredNorm();
     }
     return ret;
+}
+
+void plot_data(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const int iter)
+{
+    assert(data1.rows() == data2.rows());
+    const int num_sample = data1.rows();
+    std::vector<double> xx1(num_sample);
+    std::vector<double> xx2(num_sample);
+    std::vector<double> yy1(num_sample);
+    std::vector<double> yy2(num_sample);
+    for (int i = 0; i < num_sample; ++i)
+    {
+        xx1[i] = data1(i, 0);
+        yy1[i] = data1(i, 1);
+        xx2[i] = data2(i, 0);
+        yy2[i] = data2(i, 1);
+    }
+    plt::scatter(xx1, yy1);
+    plt::scatter(xx2, yy2);
+    plt::save("../image/iter_" + std::to_string(iter) + ".png");
 }

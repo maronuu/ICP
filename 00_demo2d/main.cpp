@@ -24,7 +24,8 @@ int main(int argc, char *argv[])
     random_shift(data1, data2);
 
     // run icp
-    icp(data1, data2);
+    const int iter = icp(data1, data2);
 
     // plot
+    plot_data(data1, data2, iter);
 }
