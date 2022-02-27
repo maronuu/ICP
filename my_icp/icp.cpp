@@ -7,8 +7,8 @@
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/SVD>
-#include "../matplotlib-cpp/matplotlibcpp.h"
-namespace plt = matplotlibcpp;
+// #include "../matplotlib-cpp/matplotlibcpp.h"
+// namespace plt = matplotlibcpp;
 
 // generate sample point cloud (random sampling from circle)
 void generate_point_cloud(const int num_sample, const double radius, Eigen::MatrixXd &data)
@@ -40,13 +40,14 @@ void random_shift(const Eigen::MatrixXd &src, Eigen::MatrixXd &dst)
     const int num_sample = src.rows();
     for (int i = 0; i < num_sample; ++i)
     {
-        // TODO: use eigen features
-        // rotation
-        dst(i, 0) = src(i, 0) * cos(theta) - src(i, 1) * sin(theta);
-        dst(i, 1) = src(i, 0) * sin(theta) + src(i, 1) * cos(theta);
         // transition
-        dst(i, 0) += dx;
-        dst(i, 1) += dy;
+        dst(i, 0) = src(i, 0) + dx;
+        dst(i, 1) = src(i, 1) + dy;
+        // rotation
+        double tmp_x = dst(i, 0);
+        double tmp_y = dst(i, 1);
+        dst(i, 0) = tmp_x * cos(theta) - tmp_y * sin(theta);
+        dst(i, 1) = tmp_x * sin(theta) + tmp_y * cos(theta);
     }
 }
 
@@ -72,11 +73,11 @@ int icp(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2)
         if (cnt % 100 == 0)
         {
             printf("%d: error = %f\n", cnt, error_after);
-            plot_data(data1, data2, cnt);
         }
         cnt++;
     }
 
+    printf("%d: error = %f\n", cnt, error_after);
     std::cout << "ICP Done" << std::endl;
     return cnt;
 }
@@ -162,24 +163,4 @@ double compute_error(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2)
         ret += (data1.row(i) - data2.row(i)).squaredNorm();
     }
     return ret;
-}
-
-void plot_data(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const int iter)
-{
-    assert(data1.rows() == data2.rows());
-    const int num_sample = data1.rows();
-    std::vector<double> xx1(num_sample);
-    std::vector<double> xx2(num_sample);
-    std::vector<double> yy1(num_sample);
-    std::vector<double> yy2(num_sample);
-    for (int i = 0; i < num_sample; ++i)
-    {
-        xx1[i] = data1(i, 0);
-        yy1[i] = data1(i, 1);
-        xx2[i] = data2(i, 0);
-        yy2[i] = data2(i, 1);
-    }
-    plt::scatter(xx1, yy1);
-    plt::scatter(xx2, yy2);
-    plt::save("../image/iter_" + std::to_string(iter) + ".png");
 }

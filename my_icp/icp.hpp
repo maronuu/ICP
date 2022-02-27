@@ -18,5 +18,3 @@ Eigen::MatrixXd compute_rotation(const Eigen::MatrixXd &data1, const Eigen::Matr
 Eigen::VectorXd compute_center_of_mass(const Eigen::MatrixXd &data);
 
 double compute_error(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2);
-
-void plot_data(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const int iter);

@@ -27,5 +27,4 @@ int main(int argc, char *argv[])
     const int iter = icp(data1, data2);
 
     // plot
-    plot_data(data1, data2, iter);
 }
