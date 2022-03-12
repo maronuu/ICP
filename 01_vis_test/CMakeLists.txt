@@ -13,7 +13,7 @@ ENDIF()
 
 ######################################################
 
-project(000_OpenWin)
+project(01_vis_test)
 
 # glfw
 set(CMAKE_PREFIX_PATH ../external/glfwlib)
