@@ -13,7 +13,7 @@ ENDIF()
 
 ######################################################
 
-project(000_OpenWin)
+project(01_vis_test)
 
 # glfw
 set(CMAKE_PREFIX_PATH ../external/glfwlib)
@@ -21,9 +21,6 @@ find_package(glfw3 REQUIRED)
 
 # opengl
 find_package(OpenGL REQUIRED)
-
-# eigen
-find_package(Eigen3 REQUIRED NO_MODULE)
 
 ######################################################
 
@@ -34,5 +31,4 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
   OpenGL::GL
   glfw
-  Eigen3::Eigen
   )
