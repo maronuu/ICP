@@ -24,12 +24,7 @@ int main(int argc, char *argv[])
     random_shift(data1, data2);
 
     // run icp
-    std::vector<int> correspondence(num_sample, -1);
-    icp(data1, data2, correspondence);
+    const int iter = icp(data1, data2);
 
     // plot
-    for (int i = 0; i < num_sample; ++i)
-    {
-        std::cout << i << ": " << i << " -> " << correspondence[i] << std::endl;
-    }
 }
