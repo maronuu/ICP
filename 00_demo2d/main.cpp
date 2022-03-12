@@ -27,4 +27,5 @@ int main(int argc, char *argv[])
     const int iter = icp(data1, data2);
 
     // plot
+    std::cout << "Iteration = " << iter << std::endl;
 }

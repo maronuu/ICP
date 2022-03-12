@@ -7,8 +7,6 @@
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/SVD>
-// #include "../matplotlib-cpp/matplotlibcpp.h"
-// namespace plt = matplotlibcpp;
 
 // generate sample point cloud (random sampling from circle)
 void generate_point_cloud(const int num_sample, const double radius, Eigen::MatrixXd &data)
@@ -140,7 +138,6 @@ Eigen::VectorXd compute_translation(const Eigen::MatrixXd &data1, const Eigen::M
 
 Eigen::MatrixXd compute_rotation(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, const std::vector<int> &correspondence)
 {
-    // TODO: SVD
     // |R -  q p.T|
     // M: 2x2 matrix
     Eigen::MatrixXd M = data2.transpose() * data1;

@@ -13,7 +13,7 @@ ENDIF()
 
 ######################################################
 
-project(000_OpenWin)
+project(00_demo2d)
 
 # glfw
 set(CMAKE_PREFIX_PATH ../external/glfwlib)
@@ -29,6 +29,7 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 
 add_executable(${PROJECT_NAME}
   main.cpp
+  icp.cpp
   )
 
 target_link_libraries(${PROJECT_NAME}
