@@ -14,18 +14,21 @@ int main(int argc, char *argv[])
     }
     const int num_sample = atoi(argv[1]);
     const double radius = 10.0;
+    printf("num_point = %d\n", num_sample);
 
     // generate sample data
-    Eigen::MatrixXd data1 = Eigen::MatrixXd::Zero(num_sample, 2);
-    generate_point_cloud(num_sample, radius, data1);
-
+    Eigen::MatrixXd src_data = Eigen::MatrixXd::Zero(num_sample, 2);
+    generate_point_cloud(num_sample, radius, src_data);
     // shift and rotate at random
-    Eigen::MatrixXd data2 = Eigen::MatrixXd::Zero(num_sample, 2);
-    random_shift(data1, data2);
+    Eigen::MatrixXd dst_data = Eigen::MatrixXd::Zero(num_sample, 2);
+    random_shift(src_data, dst_data);
 
     // run icp
-    const int iter = icp(data1, data2);
+    Eigen::MatrixXd res = Eigen::MatrixXd::Zero(num_sample, 2);
+    const int iter = icp(src_data, dst_data, res);
 
-    // plot
+    // visualize
+    // visualize(src_data, dst_data);
     std::cout << "Iteration = " << iter << std::endl;
+    visualize(res, dst_data);
 }
