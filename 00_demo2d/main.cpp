@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
     const int num_sample = atoi(argv[1]);
-    const double radius = 10.0;
+    const double radius = 1.0;
     printf("num_point = %d\n", num_sample);
 
     // generate sample data
@@ -23,12 +23,12 @@ int main(int argc, char *argv[])
     Eigen::MatrixXd dst_data = Eigen::MatrixXd::Zero(num_sample, 2);
     random_shift(src_data, dst_data);
 
+    // visualize (before)
+    // visualize(src_data, dst_data);
     // run icp
     Eigen::MatrixXd res = Eigen::MatrixXd::Zero(num_sample, 2);
     const int iter = icp(src_data, dst_data, res);
-
-    // visualize
-    // visualize(src_data, dst_data);
     std::cout << "Iteration = " << iter << std::endl;
+    // visualize (after)
     visualize(res, dst_data);
 }

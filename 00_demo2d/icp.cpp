@@ -46,7 +46,7 @@ void random_shift(const Eigen::MatrixXd &src, Eigen::MatrixXd &dst)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<double> trans_dist(-100, 100);
+    std::uniform_real_distribution<double> trans_dist(-5, 5);
     std::uniform_real_distribution<double> rot_dist(0, 2 * M_PI);
     const double dx = trans_dist(gen);
     const double dy = trans_dist(gen);
@@ -82,7 +82,7 @@ int icp(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2, Eigen::Matri
     // Eigen::MatrixXd data1_var = data1; // deep copy
 
     constexpr double inf = 1e20;
-    constexpr double eps = 1e-2;
+    constexpr double eps = 1e-3;
 
     // correspondence[i] = j means (data1[i], data2[j]) is corresponding
     std::vector<int> correspondence(num_point, -1);
@@ -194,6 +194,31 @@ void visualize(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2)
     const int num_data = data1.rows();
     assert(data1.rows() == data2.rows()); // same number of points
     assert(data1.cols() == data2.cols()); // same dimension
+    double max_x1 = 0.0f;
+    double max_y1 = 0.0f;
+    double max_x2 = 0.0f;
+    double max_y2 = 0.0f;
+    for (int i = 0; i < num_data; ++i)
+    {
+        if (max_x1 < data1(i, 0))
+        {
+            max_x1 = data1(i, 0);
+        }
+        if (max_y1 < data1(i, 1))
+        {
+            max_y1 = data1(i, 1);
+        }
+        if (max_x2 < data2(i, 0))
+        {
+            max_x2 = data2(i, 0);
+        }
+        if (max_y2 < data2(i, 1))
+        {
+            max_y2 = data2(i, 1);
+        }
+    }
+    const double max_x = (max_x1 > max_x2) ? max_x1 : max_x2;
+    const double max_y = (max_y1 > max_y2) ? max_y1 : max_y2;
     glfwSetErrorCallback(error_callback);
     if (!glfwInit())
     {
@@ -218,46 +243,21 @@ void visualize(const Eigen::MatrixXd &data1, const Eigen::MatrixXd &data2)
         // 描画
         glMatrixMode(GL_PROJECTION);                   // projection matrix (3次元座標から正規デバイス座標系への変換)
         glLoadIdentity();                              // 単位行列を設定
-        glOrtho(-ratio, ratio, -1.f, 1.f, -1.f, +1.f); // 描画範囲
+        glOrtho(-ratio, ratio, -max_y, max_y, -max_x, +max_x); // 描画範囲
         glMatrixMode(GL_MODELVIEW);                    // カメラの外部パラメータ
         glLoadIdentity();
         // glPointSize(10);
         //
-        double max_x1 = 0.0f;
-        double max_y1 = 0.0f;
-        double max_x2 = 0.0f;
-        double max_y2 = 0.0f;
-        for (int i = 0; i < num_data; ++i)
-        {
-            if (max_x1 < data1(i, 0))
-            {
-                max_x1 = data1(i, 0);
-            }
-            if (max_y1 < data1(i, 1))
-            {
-                max_y1 = data1(i, 1);
-            }
-            if (max_x2 < data2(i, 0))
-            {
-                max_x2 = data2(i, 0);
-            }
-            if (max_y2 < data2(i, 1))
-            {
-                max_y2 = data2(i, 1);
-            }
-        }
-        const double max_x = (max_x1 > max_x2) ? max_x1 : max_x2;
-        const double max_y = (max_y1 > max_y2) ? max_y1 : max_y2;
         glBegin(GL_POINTS); // 図形の定義begin
         for (int i = 0; i < num_data; ++i)
         {
             glColor3f(1.f, 0.f, 0.f);
-            glVertex3f(data1(i, 0) / max_x, data1(i, 1) / max_y, 0.f);
+            glVertex3f(data1(i, 0), data1(i, 1), 0.f);
         }
         for (int i = 0; i < num_data; ++i)
         {
             glColor3f(0.f, 1.f, 0.f);
-            glVertex3f(data2(i, 0) / max_x, data2(i, 1) / max_y, 0.f);
+            glVertex3f(data2(i, 0), data2(i, 1), 0.f);
         }
         glEnd();                 // 図形の定義end
         glfwSwapBuffers(window); // 2つあるbufferのswap -> viewの更新
