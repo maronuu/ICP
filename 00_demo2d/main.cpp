@@ -23,8 +23,7 @@ int main(int argc, char *argv[])
     Eigen::MatrixXd dst_data = Eigen::MatrixXd::Zero(num_sample, 2);
     random_shift(src_data, dst_data);
 
-    // visualize (before)
-    // visualize(src_data, dst_data);
+    visualize(src_data, dst_data);
     // run icp
     Eigen::MatrixXd res = Eigen::MatrixXd::Zero(num_sample, 2);
     const int iter = icp(src_data, dst_data, res);
